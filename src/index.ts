@@ -1,35 +1,36 @@
 import type { App } from 'vue'
-import type { WidgetConfig } from './types'
+import type { WidgetConfig } from './config'
+import { configureWidget } from './config'
+import CustomerServiceWidget from './CustomerServiceWidget.vue'
 
-// 导出类型
-export type { WidgetConfig, ChatMessage, UserInfo, WidgetTheme } from './types'
+export { CustomerServiceWidget }
+export { configureWidget, getConfig } from './config'
+export type { WidgetConfig } from './config'
+export type {
+  ChatUserProfile,
+  AssignedAgentInfo,
+  PlatformConfigInfo,
+  FeatureFlags,
+  GetImTokenRequest,
+  GetImTokenResponse,
+  PlatformType,
+} from './types/chatAuth'
+export type { Message, Conversation, MessageType } from './types/openIM'
 
-// 占位组件（Phase 4 实现）
-export const CustomerServiceWidget = {
-  name: 'CustomerServiceWidget',
-  props: {
-    config: {
-      type: Object as () => WidgetConfig,
-      required: true,
-    },
-  },
-  setup() {
-    return () => null
-  },
-}
-
-// Vue 插件安装
-export function install(app: App, config?: WidgetConfig) {
+export function install(app: App, config?: Partial<WidgetConfig>) {
   app.component('CustomerServiceWidget', CustomerServiceWidget)
   if (config) {
+    configureWidget(config)
     app.provide('widgetConfig', config)
   }
 }
 
-// 独立创建函数
-export function createWidget(el: string | HTMLElement, config: WidgetConfig) {
-  const { createApp } = require('vue')
-  const app = createApp(CustomerServiceWidget, { config })
+export async function createWidget(el: string | HTMLElement, config: Partial<WidgetConfig>) {
+  configureWidget(config)
+  const { createApp } = await import('vue')
+  const app = createApp(CustomerServiceWidget, {
+    platformKey: config.platformKey,
+  })
   const container = typeof el === 'string' ? document.querySelector(el) : el
   if (container) {
     app.mount(container)
