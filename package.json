@@ -1,0 +1,35 @@
+{
+  "name": "@sb-agent-hub/widget",
+  "private": false,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/sb-agent-hub-widget.umd.cjs",
+  "module": "./dist/sb-agent-hub-widget.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/sb-agent-hub-widget.js",
+      "require": "./dist/sb-agent-hub-widget.umd.cjs"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.5.25"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vue/tsconfig": "^0.8.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1",
+    "vue-tsc": "^3.1.5"
+  }
+}
