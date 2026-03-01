@@ -1,3 +1,5 @@
+import { createOpenIMCore, type OpenIMClient } from '@saibotianlong/openim-core'
+
 export interface WidgetConfig {
   apiAddr: string
   wsAddr: string
@@ -17,11 +19,31 @@ const defaultConfig: WidgetConfig = {
 }
 
 let currentConfig: WidgetConfig = { ...defaultConfig }
+let coreInstance: OpenIMClient | null = null
 
 export function configureWidget(config: Partial<WidgetConfig>): void {
   currentConfig = { ...currentConfig, ...config }
+  if (coreInstance) {
+    coreInstance.destroy()
+    coreInstance = null
+  }
 }
 
 export function getConfig(): WidgetConfig {
   return currentConfig
+}
+
+/** 获取共享的 OpenIM 核心客户端实例（延迟创建） */
+export function getCore(): OpenIMClient {
+  if (!coreInstance) {
+    coreInstance = createOpenIMCore({
+      apiAddr: currentConfig.apiAddr,
+      wsAddr: currentConfig.wsAddr,
+      platformID: currentConfig.platformID,
+      logLevel: currentConfig.logLevel,
+      baseURL: currentConfig.baseURL,
+      platformKey: currentConfig.platformKey,
+    })
+  }
+  return coreInstance
 }

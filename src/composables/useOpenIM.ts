@@ -1,24 +1,8 @@
 import { ref } from 'vue'
 import type { Ref } from 'vue'
-import openIMService from '../services/openIM'
-import logger from '../utils/logger'
-import type { Message, Conversation, UserInfo } from '../types/openIM'
-import { MessageType } from '../types/openIM'
-
-function isSystemMessage(message: Message): boolean {
-  if (Number(message.contentType) !== MessageType.CustomMessage) return false
-  if (!message.customElem?.data) return false
-
-  try {
-    const data = JSON.parse(message.customElem.data)
-    if (data.type === 'visitor_online' || data.type === 'visitor_offline' || data.type === 'user_info_updated') {
-      return true
-    }
-  } catch {
-    // not a custom message
-  }
-  return false
-}
+import { getCore } from '../config'
+import { isSystemMessage, logger } from '@saibotianlong/openim-core'
+import type { Message, Conversation, UserInfo } from '@saibotianlong/openim-core'
 
 export interface UseOpenIMReturn {
   isConnected: Ref<boolean>
@@ -59,10 +43,7 @@ export const registerTokenRefreshCallback = (cb: () => Promise<void>): void => {
 }
 
 const handleNewMessage = (message: Message): void => {
-  if (isSystemMessage(message)) {
-    return
-  }
-
+  // message:received 事件已由 core 过滤掉系统消息，无需再检查
   const exists = messages.value.some((m) => m.clientMsgID === message.clientMsgID)
   if (!exists) {
     messages.value.push(message)
@@ -72,7 +53,7 @@ const handleNewMessage = (message: Message): void => {
     currentConversation.value &&
     message.conversationID === currentConversation.value.conversationID
   ) {
-    openIMService.markConversationAsRead(currentConversation.value.conversationID)
+    getCore().conversation.markAsRead(currentConversation.value.conversationID)
   } else {
     unreadCount.value++
   }
@@ -111,7 +92,8 @@ const handleTokenExpired = async (): Promise<void> => {
 }
 
 const loadConversationsInternal = async (): Promise<void> => {
-  conversations.value = await openIMService.getConversationList()
+  const core = getCore()
+  conversations.value = await core.conversation.getList()
   unreadCount.value = conversations.value.reduce(
     (total, conv) => total + (conv.unreadCount || 0),
     0
@@ -122,22 +104,24 @@ const registerEventListeners = (): void => {
   if (eventListenersRegistered) return
   eventListenersRegistered = true
 
-  openIMService.on('onNewMessage', handleNewMessage)
-  openIMService.on('onConnectSuccess', handleConnectSuccess)
-  openIMService.on('onConnectFailed', handleConnectFailed)
-  openIMService.on('onKickedOffline', handleKickedOffline)
-  openIMService.on('onUserTokenExpired', handleTokenExpired)
+  const core = getCore()
+  core.on('message:received', handleNewMessage)
+  core.on('connection:success', handleConnectSuccess)
+  core.on('connection:failed', handleConnectFailed)
+  core.on('kicked:offline', handleKickedOffline)
+  core.on('token:expired', handleTokenExpired)
 }
 
 export function useOpenIM(): UseOpenIMReturn {
   const login = async (userID: string, token: string): Promise<void> => {
+    const core = getCore()
     isConnecting.value = true
     error.value = null
 
     try {
-      await openIMService.initOpenIM(userID, token)
+      await core.login(userID, token)
       isConnected.value = true
-      currentUser.value = await openIMService.getSelfUserInfo()
+      currentUser.value = await core.getUserInfo()
       await loadConversations()
     } catch (err) {
       error.value = (err as Error).message || '登录失败'
@@ -148,7 +132,8 @@ export function useOpenIM(): UseOpenIMReturn {
   }
 
   const logout = async (): Promise<void> => {
-    await openIMService.logout()
+    const core = getCore()
+    await core.logout()
     isConnected.value = false
     currentUser.value = null
     conversations.value = []
@@ -161,23 +146,25 @@ export function useOpenIM(): UseOpenIMReturn {
   }
 
   const loadMessages = async (conversationID: string, count: number = 20): Promise<void> => {
-    const list = await openIMService.getHistoryMessages(conversationID, count)
+    const core = getCore()
+    const list = await core.conversation.getHistory(conversationID, count)
     messages.value = list
       .filter(msg => !isSystemMessage(msg))
       .sort((a, b) => a.sendTime - b.sendTime)
   }
 
   const loadHistoryWithUser = async (userID: string, count: number = 100): Promise<void> => {
+    const core = getCore()
     try {
-      const conversation = await openIMService.getConversationByUserID(userID)
+      const conversation = await core.conversation.getOne(userID)
       if (conversation) {
         currentConversation.value = conversation
-        const list = await openIMService.getHistoryMessages(conversation.conversationID, count)
+        const list = await core.conversation.getHistory(conversation.conversationID, count)
         messages.value = list
           .filter(msg => !isSystemMessage(msg))
           .sort((a, b) => a.sendTime - b.sendTime)
         if (messages.value.length > 0) {
-          await openIMService.markConversationAsRead(conversation.conversationID)
+          await core.conversation.markAsRead(conversation.conversationID)
         }
       } else {
         messages.value = []
@@ -191,8 +178,9 @@ export function useOpenIM(): UseOpenIMReturn {
   const loadMoreMessages = async (): Promise<number> => {
     if (!currentConversation.value || messages.value.length === 0) return 0
 
+    const core = getCore()
     const firstMsg = messages.value[0]!
-    const moreMessages = await openIMService.getHistoryMessages(
+    const moreMessages = await core.conversation.getHistory(
       currentConversation.value.conversationID,
       20,
       firstMsg.clientMsgID
@@ -212,7 +200,8 @@ export function useOpenIM(): UseOpenIMReturn {
     text: string,
     isGroup: boolean = false
   ): Promise<Message> => {
-    const message = await openIMService.sendTextMessage(recvID, text, isGroup)
+    const core = getCore()
+    const message = await core.message.sendText(recvID, text, isGroup)
     messages.value.push(message)
     return message
   }
@@ -224,7 +213,8 @@ export function useOpenIM(): UseOpenIMReturn {
     imageInfo: { width: number; height: number; size: number; type: string },
     isGroup: boolean = false
   ): Promise<Message> => {
-    const message = await openIMService.sendImageMessageByFile(recvID, file, imageUrl, imageInfo, isGroup)
+    const core = getCore()
+    const message = await core.message.sendImage(recvID, file, imageUrl, imageInfo, isGroup)
     messages.value.push(message)
     return message
   }
@@ -234,7 +224,8 @@ export function useOpenIM(): UseOpenIMReturn {
     if (conversation) {
       await loadMessages(conversation.conversationID)
       if (messages.value.length > 0) {
-        await openIMService.markConversationAsRead(conversation.conversationID)
+        const core = getCore()
+        await core.conversation.markAsRead(conversation.conversationID)
       }
     } else {
       messages.value = []

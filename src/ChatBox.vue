@@ -2,14 +2,11 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useOpenIM } from './composables/useOpenIM'
 import { useChatAuth } from './composables/useChatAuth'
-import { uploadFile, getImageDimensions } from './services/upload'
-import { updateUserInfo } from './services/chatAuth'
-import { sendUserInfoUpdatedMessage, sendVisitorOnlineMessage } from './services/openIM'
-import logger from './utils/logger'
+import { getCore } from './config'
+import { logger, isSystemMessage as coreIsSystemMessage, MessageType } from '@saibotianlong/openim-core'
+import type { Message, CustomImageData } from '@saibotianlong/openim-core'
+import type { PlatformType, GetImTokenResponse } from '@saibotianlong/openim-core'
 import EmojiPicker from './EmojiPicker.vue'
-import type { Message, CustomImageData } from './types/openIM'
-import { MessageType } from './types/openIM'
-import type { PlatformType, GetImTokenResponse } from './types/chatAuth'
 
 interface Props {
   platformKey?: string
@@ -94,18 +91,12 @@ const getAvatarText = (nickname: string): string => {
   return nickname ? nickname.charAt(0).toUpperCase() : '?'
 }
 
-const isSystemMessage = (message: Message): boolean => {
-  if (Number(message.contentType) !== MessageType.CustomMessage) return false
-  if (!message.customElem?.data) return false
-  try {
-    const data = JSON.parse(message.customElem.data)
-    if (data.type === 'visitor_online' || data.type === 'visitor_offline') return true
-  } catch { /* ignore */ }
-  return false
+const isSystemMsg = (message: Message): boolean => {
+  return coreIsSystemMessage(message)
 }
 
 const filteredMessages = computed(() => {
-  return messages.value.filter(msg => !isSystemMessage(msg))
+  return messages.value.filter(msg => !isSystemMsg(msg))
 })
 
 const triggerImageUpload = (): void => {
@@ -124,8 +115,9 @@ const handleImageSelect = async (event: Event): Promise<void> => {
 
   isUploading.value = true
   try {
-    const dimensions = await getImageDimensions(file)
-    const uploadResult = await uploadFile(file)
+    const core = getCore()
+    const dimensions = await core.upload.getImageDimensions(file)
+    const uploadResult = await core.upload.uploadFile(file)
     await sendImage(recvID, file, uploadResult.absfileName, {
       width: dimensions.width,
       height: dimensions.height,
@@ -286,7 +278,8 @@ watch(
     if (!deviceId) return
 
     try {
-      await updateUserInfo(
+      const core = getCore()
+      await core.auth.updateUserInfo(
         props.platformKey,
         deviceId,
         newUserId !== oldUserId ? newUserId : undefined,
@@ -314,7 +307,7 @@ watch(
           if (oldAvatar) previousValues.avatar = oldAvatar
         }
 
-        await sendUserInfoUpdatedMessage(
+        await core.message.sendUserInfoUpdated(
           agent.value.agentUserId,
           updates,
           Object.keys(previousValues).length > 0 ? previousValues : undefined
@@ -360,7 +353,7 @@ const connectAndLogin = async (): Promise<void> => {
     }
 
     try {
-      await sendVisitorOnlineMessage(agent.value.agentUserId, {
+      await getCore().message.sendVisitorOnline(agent.value.agentUserId, {
         visitorId: userID.value || '',
         deviceId: user.value?.deviceId || '',
         nickname: user.value?.nickname || '访客',

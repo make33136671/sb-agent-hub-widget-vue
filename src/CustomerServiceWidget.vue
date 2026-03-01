@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import ChatBox from './ChatBox.vue'
 import { getConfig } from './config'
-import type { PlatformType, GetImTokenResponse } from './types/chatAuth'
+import type { PlatformType, GetImTokenResponse } from '@saibotianlong/openim-core'
 
 interface Props {
   show?: boolean

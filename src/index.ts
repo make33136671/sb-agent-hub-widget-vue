@@ -4,7 +4,7 @@ import { configureWidget } from './config'
 import CustomerServiceWidget from './CustomerServiceWidget.vue'
 
 export { CustomerServiceWidget }
-export { configureWidget, getConfig } from './config'
+export { configureWidget, getConfig, getCore } from './config'
 export type { WidgetConfig } from './config'
 export type {
   ChatUserProfile,
@@ -14,8 +14,9 @@ export type {
   GetImTokenRequest,
   GetImTokenResponse,
   PlatformType,
-} from './types/chatAuth'
-export type { Message, Conversation, MessageType } from './types/openIM'
+} from '@saibotianlong/openim-core'
+export type { Message, Conversation } from '@saibotianlong/openim-core'
+export { MessageType } from '@saibotianlong/openim-core'
 
 export function install(app: App, config?: Partial<WidgetConfig>) {
   app.component('CustomerServiceWidget', CustomerServiceWidget)

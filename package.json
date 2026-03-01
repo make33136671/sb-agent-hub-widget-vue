@@ -1,13 +1,18 @@
 {
-  "name": "@sb-agent-hub/widget",
-  "private": false,
+  "name": "@saibotianlong/agent-widget-vue",
   "version": "0.1.0",
+  "description": "Vue 3 customer service widget component with OpenIM integration",
   "type": "module",
+  "license": "MIT",
+  "author": "saibotianlong",
+  "keywords": ["vue", "vue3", "widget", "customer-service", "chat", "im"],
+  "sideEffects": false,
   "main": "./dist/sb-agent-hub-widget.umd.cjs",
   "module": "./dist/sb-agent-hub-widget.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/sb-agent-hub-widget.js",
       "require": "./dist/sb-agent-hub-widget.umd.cjs"
     },
@@ -22,8 +27,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@openim/wasm-client-sdk": "^3.8.5",
-    "vue": "^3.5.25"
+    "@saibotianlong/openim-core": "file:../openim-core-js"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
@@ -31,6 +38,7 @@
     "@vue/tsconfig": "^0.8.1",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
+    "vue": "^3.5.25",
     "vue-tsc": "^3.1.5"
   }
 }

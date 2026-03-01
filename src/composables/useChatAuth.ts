@@ -1,9 +1,7 @@
 import { ref, computed } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
-import { chatAuthService } from '../services/chatAuth'
-import { initOpenIM, logout as logoutOpenIM } from '../services/openIM'
-import { registerTokenRefreshCallback } from './useOpenIM'
-import logger from '../utils/logger'
+import { getCore } from '../config'
+import { logger } from '@saibotianlong/openim-core'
 import type {
   GetImTokenRequest,
   GetImTokenResponse,
@@ -12,9 +10,8 @@ import type {
   PlatformConfigInfo,
   FeatureFlags,
   PlatformType,
-} from '../types/chatAuth'
-
-const STORAGE_KEY = 'chat_auth_data'
+} from '@saibotianlong/openim-core'
+import { registerTokenRefreshCallback } from './useOpenIM'
 
 export interface UseChatAuthReturn {
   isLoggedIn: ComputedRef<boolean>
@@ -53,44 +50,6 @@ let lastLoginRequest: GetImTokenRequest | null = null
 
 const isLoggedIn = computed(() => !!userID.value && !!token.value)
 
-function saveAuthData(data: GetImTokenResponse): void {
-  try {
-    const storageData = {
-      userID: data.userID,
-      token: data.token,
-      user: data.user,
-      agent: data.agent,
-      platform: data.platform,
-      features: data.features,
-      expireAt: Date.now() + data.expireTime * 1000,
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData))
-  } catch (e) {
-    logger.warn('ChatAuth', '保存认证数据失败:', e)
-  }
-}
-
-function loadAuthData(): (GetImTokenResponse & { expireAt: number }) | null {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored) return null
-
-    const data = JSON.parse(stored)
-    if (data.expireAt && data.expireAt - 5 * 60 * 1000 < Date.now()) {
-      localStorage.removeItem(STORAGE_KEY)
-      return null
-    }
-    return data
-  } catch (e) {
-    logger.warn('ChatAuth', '加载认证数据失败:', e)
-    return null
-  }
-}
-
-function clearAuthData(): void {
-  localStorage.removeItem(STORAGE_KEY)
-}
-
 export function useChatAuth(): UseChatAuthReturn {
   const login = async (
     request: GetImTokenRequest
@@ -99,11 +58,12 @@ export function useChatAuth(): UseChatAuthReturn {
       throw new Error('正在登录中，请稍候')
     }
 
+    const core = getCore()
     isLoggingIn.value = true
     error.value = null
 
     try {
-      const authData = await chatAuthService.getImToken(request)
+      const authData = await core.auth.getImToken(request)
 
       userID.value = authData.userID
       token.value = authData.token
@@ -112,18 +72,18 @@ export function useChatAuth(): UseChatAuthReturn {
       platform.value = authData.platform
       features.value = authData.features
 
-      saveAuthData(authData)
+      core.session.saveAuthData(authData)
       lastLoginRequest = request
 
-      await initOpenIM(authData.userID, authData.token)
+      await core.login(authData.userID, authData.token)
 
       registerTokenRefreshCallback(async () => {
         if (!lastLoginRequest) throw new Error('无法刷新：缺少登录参数')
-        const newAuth = await chatAuthService.getImToken(lastLoginRequest)
+        const newAuth = await core.auth.getImToken(lastLoginRequest)
         userID.value = newAuth.userID
         token.value = newAuth.token
-        saveAuthData(newAuth)
-        await initOpenIM(newAuth.userID, newAuth.token)
+        core.session.saveAuthData(newAuth)
+        await core.login(newAuth.userID, newAuth.token)
       })
 
       logger.info('ChatAuth', '登录成功:', {
@@ -137,7 +97,7 @@ export function useChatAuth(): UseChatAuthReturn {
       const message = e instanceof Error ? e.message : '登录失败'
       error.value = message
       logger.error('ChatAuth', '登录失败:', e)
-      clearAuthData()
+      core.session.clearAuthData()
       throw e
     } finally {
       isLoggingIn.value = false
@@ -165,8 +125,9 @@ export function useChatAuth(): UseChatAuthReturn {
   }
 
   const logout = async (): Promise<void> => {
+    const core = getCore()
     try {
-      await logoutOpenIM()
+      await core.logout()
     } catch (e) {
       logger.warn('ChatAuth', 'OpenIM 登出失败:', e)
     }
@@ -179,11 +140,12 @@ export function useChatAuth(): UseChatAuthReturn {
     features.value = null
     error.value = null
 
-    clearAuthData()
+    core.session.clearAuthData()
   }
 
   const restoreSession = async (): Promise<boolean> => {
-    const stored = loadAuthData()
+    const core = getCore()
+    const stored = core.session.loadAuthData()
     if (!stored) return false
 
     isLoggingIn.value = true
@@ -197,13 +159,13 @@ export function useChatAuth(): UseChatAuthReturn {
       platform.value = stored.platform
       features.value = stored.features
 
-      await initOpenIM(stored.userID, stored.token)
+      await core.login(stored.userID, stored.token)
 
       logger.info('ChatAuth', '会话恢复成功')
       return true
     } catch (e) {
       logger.warn('ChatAuth', '恢复会话失败:', e)
-      clearAuthData()
+      core.session.clearAuthData()
       userID.value = null
       token.value = null
       user.value = null
@@ -224,19 +186,8 @@ export function useChatAuth(): UseChatAuthReturn {
     if (updates.avatar !== undefined) updatedUser.avatar = updates.avatar
     user.value = updatedUser
 
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const data = JSON.parse(stored)
-        if (data.user) {
-          if (updates.nickname !== undefined) data.user.nickname = updates.nickname
-          if (updates.avatar !== undefined) data.user.avatar = updates.avatar
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-        }
-      }
-    } catch (e) {
-      logger.warn('ChatAuth', '更新本地存储失败:', e)
-    }
+    const core = getCore()
+    core.session.updateUserProfile(updates)
   }
 
   return {
