@@ -10,12 +10,12 @@ export interface WidgetConfig {
 }
 
 const defaultConfig: WidgetConfig = {
-  apiAddr: 'http://localhost:10002',
-  wsAddr: 'ws://localhost:10001',
+  apiAddr: 'http://192.168.10.231:10002',
+  wsAddr: 'ws://192.168.10.231:10001',
   platformID: 5, // Web
   logLevel: 2, // Error (0-Panic, 1-Fatal, 2-Error, 3-Warn, 4-Info, 5-Debug, 6-Verbose)
-  baseURL: 'http://localhost:5153',
-  platformKey: '',
+  baseURL: 'http://127.0.0.1:5153',
+  platformKey: 'pk_b15ad941fcc248cab64513cebeee6d1a',
 }
 
 let currentConfig: WidgetConfig = { ...defaultConfig }
