@@ -100,32 +100,23 @@ const loadConversationsInternal = async (): Promise<void> => {
   )
 }
 
-/** 等待 SDK 连接就绪（connection:success），超时 10 秒 */
-const waitForConnection = (): Promise<void> => {
-  // 如果已经连接成功，直接返回
-  if (isConnected.value) return Promise.resolve()
-
+/**
+ * 等待 SDK 数据同步完成（sync:finished），超时 15 秒。
+ * 必须在 login() 之前调用，以避免事件被遗漏的竞态条件。
+ */
+const waitForSync = (): Promise<void> => {
   return new Promise((resolve) => {
     const core = getCore()
-    const onSuccess = () => {
+    const cleanup = () => {
       clearTimeout(timer)
-      core.off('connection:success', onSuccess)
-      core.off('connection:failed', onFailed)
-      resolve()
+      core.off('sync:finished', onFinished)
+      core.off('sync:failed', onFailed)
     }
-    const onFailed = () => {
-      clearTimeout(timer)
-      core.off('connection:success', onSuccess)
-      core.off('connection:failed', onFailed)
-      resolve() // 失败也继续，不阻塞
-    }
-    const timer = setTimeout(() => {
-      core.off('connection:success', onSuccess)
-      core.off('connection:failed', onFailed)
-      resolve()
-    }, 10000)
-    core.on('connection:success', onSuccess)
-    core.on('connection:failed', onFailed)
+    const onFinished = () => { cleanup(); resolve() }
+    const onFailed = () => { cleanup(); resolve() }
+    const timer = setTimeout(() => { cleanup(); resolve() }, 15000)
+    core.on('sync:finished', onFinished)
+    core.on('sync:failed', onFailed)
   })
 }
 
@@ -148,9 +139,10 @@ export function useOpenIM(): UseOpenIMReturn {
     error.value = null
 
     try {
+      // 在 login 之前注册 sync 监听，避免竞态条件
+      const syncReady = waitForSync()
       await core.login(userID, token)
-      // 等待 SDK 同步完成（connection:success），超时 10 秒
-      await waitForConnection()
+      await syncReady
       currentUser.value = await core.getUserInfo()
       await loadConversations()
     } catch (err) {
