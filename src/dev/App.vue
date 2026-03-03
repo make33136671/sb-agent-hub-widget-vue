@@ -4,10 +4,10 @@ import CustomerServiceWidget from '../CustomerServiceWidget.vue'
 import { configureWidget } from '../config'
 
 configureWidget({
-  apiAddr: 'http://localhost:10002',
-  wsAddr: 'ws://localhost:10001',
+  apiAddr: 'http://192.168.10.231:10002',
+  wsAddr: 'ws://192.168.10.231:10001',
   baseURL: 'http://localhost:5153',
-  platformKey: 'test-platform-key',
+  platformKey: 'pk_b15ad941fcc248cab64513cebeee6d1a',
   logLevel: 5,
 })
 
@@ -26,9 +26,8 @@ const showChat = ref(false)
 
     <CustomerServiceWidget
       v-model:show="showChat"
-      platform-key="test-platform-key"
-      user-id="test-user-001"
-      nickname="测试用户"
+      platform-key="pk_b15ad941fcc248cab64513cebeee6d1a"
+      nickname="Vue测试用户"
     />
   </div>
 </template>

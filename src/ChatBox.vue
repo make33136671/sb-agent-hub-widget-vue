@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useOpenIM } from './composables/useOpenIM'
 import { useChatAuth } from './composables/useChatAuth'
 import { getCore } from './config'
@@ -309,8 +309,10 @@ watch(
 
         await core.message.sendUserInfoUpdated(
           agent.value.agentUserId,
-          updates,
-          Object.keys(previousValues).length > 0 ? previousValues : undefined
+          {
+            updates,
+            previousValues: Object.keys(previousValues).length > 0 ? previousValues : undefined,
+          }
         )
       }
 
@@ -325,6 +327,40 @@ watch(
   },
   { deep: true }
 )
+
+// --- 访客下线通知 ---
+const loginTime = ref(0)
+let boundBeforeUnload: (() => void) | null = null
+
+const sendOfflineNotification = (reason: 'window_close' | 'idle_timeout' | 'network_error' | 'manual'): void => {
+  const agentUserId = agent.value?.agentUserId
+  const vid = userID.value
+  if (!agentUserId || !vid) return
+
+  const sessionDuration = loginTime.value > 0
+    ? Math.round((Date.now() - loginTime.value) / 1000)
+    : undefined
+
+  getCore().message.sendVisitorOffline(agentUserId, {
+    visitorId: vid,
+    reason,
+    sessionDuration,
+  }).catch(() => {})
+}
+
+const registerBeforeUnload = (): void => {
+  if (typeof window === 'undefined') return
+  removeBeforeUnload()
+  boundBeforeUnload = () => sendOfflineNotification('window_close')
+  window.addEventListener('beforeunload', boundBeforeUnload)
+}
+
+const removeBeforeUnload = (): void => {
+  if (boundBeforeUnload && typeof window !== 'undefined') {
+    window.removeEventListener('beforeunload', boundBeforeUnload)
+    boundBeforeUnload = null
+  }
+}
 
 const connectAndLogin = async (): Promise<void> => {
   if (!props.platformKey) return
@@ -352,6 +388,8 @@ const connectAndLogin = async (): Promise<void> => {
       logger.error('ChatBox', '加载历史消息失败:', e)
     }
 
+    loginTime.value = Date.now()
+
     try {
       await getCore().message.sendVisitorOnline(agent.value.agentUserId, {
         visitorId: userID.value || '',
@@ -359,18 +397,29 @@ const connectAndLogin = async (): Promise<void> => {
         nickname: user.value?.nickname || '访客',
         avatar: user.value?.avatar || '',
         isAnonymous: user.value?.userType === 0,
+        userType: (user.value?.userType ?? 0) as 0 | 1 | 2,
         source: props.platformKey,
         platformType: 0,
+        pageUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+        pageTitle: typeof document !== 'undefined' ? document.title : undefined,
+        referrer: typeof document !== 'undefined' && document.referrer ? document.referrer : undefined,
       })
     } catch (e) {
       logger.error('ChatBox', '发送上线通知失败:', e)
     }
+
+    registerBeforeUnload()
   }
 }
 
 onMounted(async () => {
   scrollToBottom()
   await connectAndLogin()
+})
+
+onBeforeUnmount(() => {
+  sendOfflineNotification('manual')
+  removeBeforeUnload()
 })
 </script>
 
