@@ -100,6 +100,35 @@ const loadConversationsInternal = async (): Promise<void> => {
   )
 }
 
+/** 等待 SDK 连接就绪（connection:success），超时 10 秒 */
+const waitForConnection = (): Promise<void> => {
+  // 如果已经连接成功，直接返回
+  if (isConnected.value) return Promise.resolve()
+
+  return new Promise((resolve) => {
+    const core = getCore()
+    const onSuccess = () => {
+      clearTimeout(timer)
+      core.off('connection:success', onSuccess)
+      core.off('connection:failed', onFailed)
+      resolve()
+    }
+    const onFailed = () => {
+      clearTimeout(timer)
+      core.off('connection:success', onSuccess)
+      core.off('connection:failed', onFailed)
+      resolve() // 失败也继续，不阻塞
+    }
+    const timer = setTimeout(() => {
+      core.off('connection:success', onSuccess)
+      core.off('connection:failed', onFailed)
+      resolve()
+    }, 10000)
+    core.on('connection:success', onSuccess)
+    core.on('connection:failed', onFailed)
+  })
+}
+
 const registerEventListeners = (): void => {
   if (eventListenersRegistered) return
   eventListenersRegistered = true
@@ -120,7 +149,8 @@ export function useOpenIM(): UseOpenIMReturn {
 
     try {
       await core.login(userID, token)
-      isConnected.value = true
+      // 等待 SDK 同步完成（connection:success），超时 10 秒
+      await waitForConnection()
       currentUser.value = await core.getUserInfo()
       await loadConversations()
     } catch (err) {
