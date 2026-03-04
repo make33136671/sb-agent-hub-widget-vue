@@ -1,8 +1,8 @@
 import { createOpenIMCore, type OpenIMClient } from '@saibotianlong/openim-core'
 
 export interface WidgetConfig {
-  apiAddr: string
-  wsAddr: string
+  apiAddr?: string
+  wsAddr?: string
   platformID: number
   logLevel: number
   baseURL: string
@@ -10,8 +10,6 @@ export interface WidgetConfig {
 }
 
 const defaultConfig: WidgetConfig = {
-  apiAddr: 'http://192.168.10.231:10002',
-  wsAddr: 'ws://192.168.10.231:10001',
   platformID: 5, // Web
   logLevel: 2, // Error (0-Panic, 1-Fatal, 2-Error, 3-Warn, 4-Info, 5-Debug, 6-Verbose)
   baseURL: 'http://127.0.0.1:5153',

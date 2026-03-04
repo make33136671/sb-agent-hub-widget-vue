@@ -31,6 +31,7 @@ export interface UseChatAuthReturn {
     avatar?: string
     deviceId?: string
     platformType?: PlatformType
+    source?: string
   }) => Promise<GetImTokenResponse>
   logout: () => Promise<void>
   restoreSession: () => Promise<boolean>
@@ -72,6 +73,11 @@ export function useChatAuth(): UseChatAuthReturn {
       platform.value = authData.platform
       features.value = authData.features
 
+      // 用服务端下发的 IM 地址更新 SDK 配置
+      if (authData.imConfig) {
+        core.updateImAddrs(authData.imConfig.apiUrl, authData.imConfig.wsUrl)
+      }
+
       core.session.saveAuthData(authData)
       lastLoginRequest = request
 
@@ -80,6 +86,9 @@ export function useChatAuth(): UseChatAuthReturn {
       registerTokenRefreshCallback(async () => {
         if (!lastLoginRequest) throw new Error('无法刷新：缺少登录参数')
         const newAuth = await core.auth.getImToken(lastLoginRequest)
+        if (newAuth.imConfig) {
+          core.updateImAddrs(newAuth.imConfig.apiUrl, newAuth.imConfig.wsUrl)
+        }
         userID.value = newAuth.userID
         token.value = newAuth.token
         core.session.saveAuthData(newAuth)
@@ -112,6 +121,7 @@ export function useChatAuth(): UseChatAuthReturn {
       avatar?: string
       deviceId?: string
       platformType?: PlatformType
+      source?: string
     }
   ): Promise<GetImTokenResponse> => {
     return login({
@@ -121,6 +131,7 @@ export function useChatAuth(): UseChatAuthReturn {
       avatar: options?.avatar,
       deviceId: options?.deviceId,
       platformType: options?.platformType || 0,
+      source: options?.source || 'vue',
     })
   }
 
