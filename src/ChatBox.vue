@@ -309,10 +309,8 @@ watch(
 
         await core.message.sendUserInfoUpdated(
           agent.value.agentUserId,
-          {
-            updates,
-            previousValues: Object.keys(previousValues).length > 0 ? previousValues : undefined,
-          }
+          updates,
+          Object.keys(previousValues).length > 0 ? previousValues : undefined
         )
       }
 
