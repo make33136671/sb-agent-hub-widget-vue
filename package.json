@@ -1,11 +1,18 @@
 {
   "name": "@saibotianlong/agent-widget-vue",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Vue 3 customer service widget component with OpenIM integration",
   "type": "module",
   "license": "MIT",
   "author": "saibotianlong",
-  "keywords": ["vue", "vue3", "widget", "customer-service", "chat", "im"],
+  "keywords": [
+    "vue",
+    "vue3",
+    "widget",
+    "customer-service",
+    "chat",
+    "im"
+  ],
   "sideEffects": false,
   "main": "./dist/sb-agent-hub-widget.umd.cjs",
   "module": "./dist/sb-agent-hub-widget.js",

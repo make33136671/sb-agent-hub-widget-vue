@@ -35,6 +35,7 @@ const error = ref<string | null>(null)
 const unreadCount = ref(0)
 
 let eventListenersRegistered = false
+let registeredCoreInstance: ReturnType<typeof getCore> | null = null
 
 let tokenRefreshCallback: (() => Promise<void>) | null = null
 
@@ -121,10 +122,12 @@ const waitForSync = (): Promise<void> => {
 }
 
 const registerEventListeners = (): void => {
-  if (eventListenersRegistered) return
-  eventListenersRegistered = true
-
   const core = getCore()
+  // core 实例变化时需要重新注册
+  if (eventListenersRegistered && registeredCoreInstance === core) return
+  eventListenersRegistered = true
+  registeredCoreInstance = core
+
   core.on('message:received', handleNewMessage)
   core.on('connection:success', handleConnectSuccess)
   core.on('connection:failed', handleConnectFailed)

@@ -12,6 +12,7 @@ interface Props {
   avatar?: string
   fullPageUrl?: string
   showExpandButton?: boolean
+  source?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -22,6 +23,7 @@ const props = withDefaults(defineProps<Props>(), {
   avatar: '',
   fullPageUrl: '',
   showExpandButton: true,
+  source: 'vue',
 })
 
 const emit = defineEmits<{
@@ -132,6 +134,7 @@ defineExpose({
           :user-id="userId"
           :nickname="nickname"
           :avatar="avatar"
+          :source="source"
         />
       </div>
     </div>

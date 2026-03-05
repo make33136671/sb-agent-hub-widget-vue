@@ -13,6 +13,7 @@ interface Props {
   userId?: string
   nickname?: string
   avatar?: string
+  source?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -20,6 +21,7 @@ const props = withDefaults(defineProps<Props>(), {
   userId: '',
   nickname: '',
   avatar: '',
+  source: 'vue',
 })
 
 const {
@@ -236,6 +238,7 @@ const login = async (
     nickname: props.nickname,
     avatar: props.avatar,
     platformType,
+    source: props.source,
   })
 }
 
@@ -360,22 +363,45 @@ const removeBeforeUnload = (): void => {
   }
 }
 
+/** 等待 SDK 数据同步完成，必须在 core.login() 之前调用以避免竞态 */
+const waitForSync = (): Promise<void> => {
+  return new Promise((resolve) => {
+    const core = getCore()
+    const cleanup = () => {
+      clearTimeout(timer)
+      core.off('sync:finished', onFinished)
+      core.off('sync:failed', onFailed)
+    }
+    const onFinished = () => { cleanup(); resolve() }
+    const onFailed = () => { cleanup(); resolve() }
+    const timer = setTimeout(() => { cleanup(); resolve() }, 15000)
+    core.on('sync:finished', onFinished)
+    core.on('sync:failed', onFailed)
+  })
+}
+
 const connectAndLogin = async (): Promise<void> => {
   if (!props.platformKey) return
 
   error.value = null
-  let loginSuccess = false
 
-  const restored = await restoreSession()
-  if (restored) {
+  // 清除旧会话，始终全新登录（与 ChatPage 保持一致）
+  getCore().session.clearAuthData()
+
+  // 在 login 之前注册 sync 监听，避免竞态条件
+  const syncReady = waitForSync()
+
+  let loginSuccess = false
+  try {
+    await login(props.platformKey, props.userId)
     loginSuccess = true
-  } else {
-    try {
-      await login(props.platformKey, props.userId)
-      loginSuccess = true
-    } catch (e) {
-      logger.error('ChatBox', '登录失败:', e)
-    }
+  } catch (e) {
+    logger.error('ChatBox', '登录失败:', e)
+  }
+
+  // 等待 SDK 数据同步完成后再发送消息
+  if (loginSuccess) {
+    await syncReady
   }
 
   if (loginSuccess && agent.value?.agentUserId) {
