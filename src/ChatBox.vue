@@ -105,6 +105,13 @@ const triggerImageUpload = (): void => {
   imageInputRef.value?.click()
 }
 
+/** 获取消息发送目标（群聊模式用 groupId，否则用 agentUserId） */
+const getSendTarget = () => {
+  const groupId = agent.value?.groupId
+  if (groupId) return { recvID: groupId, isGroup: true }
+  return { recvID: agent.value?.agentUserId || '', isGroup: false }
+}
+
 const handleImageSelect = async (event: Event): Promise<void> => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -112,7 +119,7 @@ const handleImageSelect = async (event: Event): Promise<void> => {
   if (!file.type.startsWith('image/')) return
   if (file.size > 10 * 1024 * 1024) return
 
-  const recvID = agent.value?.agentUserId
+  const { recvID, isGroup } = getSendTarget()
   if (!recvID) return
 
   isUploading.value = true
@@ -125,7 +132,7 @@ const handleImageSelect = async (event: Event): Promise<void> => {
       height: dimensions.height,
       size: file.size,
       type: file.type,
-    })
+    }, isGroup)
     scrollToBottom()
   } catch (err) {
     logger.error('ChatBox', '发送图片失败:', err)
@@ -195,13 +202,13 @@ const scrollToBottom = (): void => {
 watch(messages, () => scrollToBottom(), { deep: true })
 
 const handleSend = async (): Promise<void> => {
-  const recvID = agent.value?.agentUserId
+  const { recvID, isGroup } = getSendTarget()
   const text = inputText.value.trim()
   if (!text || isSending.value || !recvID) return
 
   isSending.value = true
   try {
-    await sendText(recvID, text)
+    await sendText(recvID, text, isGroup)
     inputText.value = ''
     scrollToBottom()
   } catch (err) {
@@ -406,7 +413,13 @@ const connectAndLogin = async (): Promise<void> => {
 
   if (loginSuccess && agent.value?.agentUserId) {
     try {
-      await loadHistoryWithUser(agent.value.agentUserId, 100)
+      // 群聊模式用 groupId + sessionType=3，否则用 agentUserId（单聊）
+      const groupId = agent.value?.groupId
+      if (groupId) {
+        await loadHistoryWithUser(groupId, 100, 3)
+      } else {
+        await loadHistoryWithUser(agent.value.agentUserId, 100)
+      }
       scrollToBottom()
     } catch (e) {
       logger.error('ChatBox', '加载历史消息失败:', e)

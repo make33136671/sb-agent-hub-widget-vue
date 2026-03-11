@@ -178,15 +178,21 @@ export function useOpenIM(): UseOpenIMReturn {
       .sort((a, b) => a.sendTime - b.sendTime)
   }
 
-  const loadHistoryWithUser = async (userID: string, count: number = 100): Promise<void> => {
+  const loadHistoryWithUser = async (userID: string, count: number = 100, sessionType: number = 1): Promise<void> => {
     const core = getCore()
     try {
-      const conversation = await core.conversation.getOne(userID)
+      const conversation = await core.conversation.getOne(userID, sessionType)
       if (conversation) {
         currentConversation.value = conversation
         const list = await core.conversation.getHistory(conversation.conversationID, count)
         messages.value = list
-          .filter(msg => !isSystemMessage(msg))
+          .filter(msg => {
+            if (!isSystemMessage(msg)) return true
+            // 过滤掉群组系统通知（contentType 1501-1599）
+            const ct = Number(msg.contentType)
+            if (ct >= 1501 && ct <= 1599) return false
+            return false
+          })
           .sort((a, b) => a.sendTime - b.sendTime)
         if (messages.value.length > 0) {
           await core.conversation.markAsRead(conversation.conversationID)
