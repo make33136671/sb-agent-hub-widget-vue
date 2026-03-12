@@ -18,7 +18,7 @@ export interface UseOpenIMReturn {
   logout: () => Promise<void>
   loadConversations: () => Promise<void>
   loadMessages: (conversationID: string, count?: number) => Promise<void>
-  loadHistoryWithUser: (userID: string, count?: number) => Promise<void>
+  loadHistoryWithUser: (userID: string, count?: number, sessionType?: number) => Promise<void>
   loadMoreMessages: () => Promise<number>
   sendText: (recvID: string, text: string, isGroup?: boolean) => Promise<Message>
   sendImage: (recvID: string, file: File, imageUrl: string, imageInfo: { width: number; height: number; size: number; type: string }, isGroup?: boolean) => Promise<Message>
