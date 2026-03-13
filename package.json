@@ -1,6 +1,6 @@
 {
   "name": "@saibotianlong/agent-widget-vue",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "description": "Vue 3 customer service widget component with OpenIM integration",
   "type": "module",
   "license": "MIT",
@@ -23,7 +23,7 @@
       "import": "./dist/sb-agent-hub-widget.js",
       "require": "./dist/sb-agent-hub-widget.umd.cjs"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": "./dist/sb-agent-hub-widget.css"
   },
   "files": [
     "dist"
