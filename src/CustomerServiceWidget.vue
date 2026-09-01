@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import ChatBox from './ChatBox.vue'
 import { getConfig } from './config'
-import type { PlatformType, GetImTokenResponse } from '@saibotianlong/openim-core'
+import type { PlatformType, GetTokenResponse } from '@sb/realtime-core'
 
 interface Props {
   show?: boolean
@@ -32,7 +32,7 @@ const emit = defineEmits<{
 }>()
 
 interface ChatBoxExposed {
-  login: (platformKey: string, userId?: string, platformType?: PlatformType) => Promise<GetImTokenResponse>
+  login: (platformKey: string, userId?: string, platformType?: PlatformType) => Promise<GetTokenResponse>
   loginDirect: (userID: string, token: string) => Promise<void>
   logout: () => Promise<void>
   restoreSession: () => Promise<boolean>
@@ -41,7 +41,7 @@ interface ChatBoxExposed {
   isLoggedIn: boolean
   isLoggingIn: boolean
   userID: string | null
-  agentUserID: string | null
+  agentUserId: string | null
 }
 
 const internalShow = ref(false)

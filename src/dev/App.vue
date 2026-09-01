@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, reactive } from 'vue'
 import CustomerServiceWidget from '../CustomerServiceWidget.vue'
 import { configureWidget } from '../config'
@@ -78,12 +78,12 @@ if (savedConfig) {
             <input v-model="form.baseURL" placeholder="https://kefu.saibo.club" />
           </label>
           <label class="form-item">
-            <span class="form-label">OpenIM API 地址 (apiAddr)</span>
+            <span class="form-label">Realtime API 地址 (apiAddr)</span>
             <input v-model="form.apiAddr" placeholder="https://kefu.saibo.club/imapi" />
             <span class="form-hint">备用地址，服务端返回时优先使用服务端地址</span>
           </label>
           <label class="form-item">
-            <span class="form-label">OpenIM WS 地址 (wsAddr)</span>
+            <span class="form-label">Realtime WS 地址 (wsAddr)</span>
             <input v-model="form.wsAddr" placeholder="wss://kefu.saibo.club/imws" />
             <span class="form-hint">备用地址，服务端返回时优先使用服务端地址</span>
           </label>

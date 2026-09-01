@@ -1,12 +1,13 @@
 import { ref } from 'vue'
 import type { Ref } from 'vue'
 import { getCore } from '../config'
-import { isSystemMessage, logger } from '@saibotianlong/openim-core'
-import type { Message, Conversation, UserInfo } from '@saibotianlong/openim-core'
+import { isSystemMessage, logger, MessageStatus } from '@sb/realtime-core'
+import type { Message, Conversation, UserInfo } from '@sb/realtime-core'
 
-export interface UseOpenIMReturn {
+export interface UseRealtimeReturn {
   isConnected: Ref<boolean>
   isConnecting: Ref<boolean>
+  isReconnecting: Ref<boolean>
   currentUser: Ref<UserInfo | null>
   conversations: Ref<Conversation[]>
   messages: Ref<Message[]>
@@ -27,6 +28,7 @@ export interface UseOpenIMReturn {
 
 const isConnected = ref(false)
 const isConnecting = ref(false)
+const isReconnecting = ref(false)
 const currentUser = ref<UserInfo | null>(null)
 const conversations = ref<Conversation[]>([])
 const messages = ref<Message[]>([])
@@ -44,10 +46,14 @@ export const registerTokenRefreshCallback = (cb: () => Promise<void>): void => {
 }
 
 const handleNewMessage = (message: Message): void => {
+  console.log('[useRealtime] handleNewMessage 收到消息, clientMsgID:', message.clientMsgID, 'sendID:', message.sendID, 'conversationID:', message.conversationID)
   // message:received 事件已由 core 过滤掉系统消息，无需再检查
   const exists = messages.value.some((m) => m.clientMsgID === message.clientMsgID)
   if (!exists) {
+    console.log('[useRealtime] handleNewMessage 推入 messages.value, 当前长度:', messages.value.length + 1)
     messages.value.push(message)
+  } else {
+    console.log('[useRealtime] handleNewMessage 消息已存在，跳过')
   }
 
   if (
@@ -64,12 +70,39 @@ const handleNewMessage = (message: Message): void => {
 const handleConnectSuccess = (): void => {
   isConnected.value = true
   isConnecting.value = false
+  isReconnecting.value = false
 }
 
 const handleConnectFailed = (): void => {
   isConnected.value = false
   isConnecting.value = false
+  isReconnecting.value = false
   error.value = '连接失败'
+}
+
+const handleReconnecting = (): void => {
+  isReconnecting.value = true
+}
+
+const handleMessageWithdrawn = ({ message }: { message?: Message }): void => {
+  if (!message) return
+  message.status = MessageStatus.Withdrawn
+  message.isWithdrawn = true
+  // 更新消息列表中的对应消息
+  const idx = messages.value.findIndex((m) => m.clientMsgID === message.clientMsgID || m.serverMsgID === message.serverMsgID)
+  if (idx >= 0) {
+    messages.value[idx] = { ...messages.value[idx], ...message }
+  }
+}
+
+const handleMessageEdited = (message: Message): void => {
+  if (!message) return
+  message.status = MessageStatus.Edited
+  // 更新消息列表中的对应消息
+  const idx = messages.value.findIndex((m) => m.clientMsgID === message.clientMsgID || m.serverMsgID === message.serverMsgID)
+  if (idx >= 0) {
+    messages.value[idx] = { ...messages.value[idx], ...message }
+  }
 }
 
 const handleKickedOffline = (): void => {
@@ -84,7 +117,7 @@ const handleTokenExpired = async (): Promise<void> => {
     try {
       await tokenRefreshCallback()
     } catch (err) {
-      logger.error('OpenIM', 'Token 自动刷新失败:', err)
+      logger.error('Realtime', 'Token 自动刷新失败:', err)
       error.value = 'Token 已过期，请重新登录'
     }
   } else {
@@ -131,13 +164,30 @@ const registerEventListeners = (): void => {
   core.on('message:received', handleNewMessage)
   core.on('connection:success', handleConnectSuccess)
   core.on('connection:failed', handleConnectFailed)
+  core.on('connection:reconnecting', handleReconnecting)
+  core.on('message:withdrawn', handleMessageWithdrawn)
+  core.on('message:edited', handleMessageEdited)
   core.on('kicked:offline', handleKickedOffline)
   core.on('token:expired', handleTokenExpired)
 }
 
-export function useOpenIM(): UseOpenIMReturn {
+export function useRealtime(): UseRealtimeReturn {
   const login = async (userID: string, token: string): Promise<void> => {
     const core = getCore()
+
+    // 如果已经连接（useChatAuth.login 已调用过 core.login），
+    // 跳过重复登录，只加载数据，避免 waitForSync 错过 sync:finished 事件
+    if (isConnected.value) {
+      isConnecting.value = false
+      try {
+        currentUser.value = await core.getUserInfo()
+        await loadConversations()
+      } catch (err) {
+        error.value = (err as Error).message || '加载数据失败'
+      }
+      return
+    }
+
     isConnecting.value = true
     error.value = null
 
@@ -184,6 +234,7 @@ export function useOpenIM(): UseOpenIMReturn {
       const conversation = await core.conversation.getOne(userID, sessionType)
       if (conversation) {
         currentConversation.value = conversation
+        core.setConversationId(conversation.conversationID)
         const list = await core.conversation.getHistory(conversation.conversationID, count)
         messages.value = list
           .filter(msg => {
@@ -201,7 +252,7 @@ export function useOpenIM(): UseOpenIMReturn {
         messages.value = []
       }
     } catch (err) {
-      logger.error('OpenIM', '加载历史消息失败:', err)
+      logger.error('Realtime', '加载历史消息失败:', err)
       messages.value = []
     }
   }
@@ -268,6 +319,7 @@ export function useOpenIM(): UseOpenIMReturn {
   return {
     isConnected,
     isConnecting,
+    isReconnecting,
     currentUser,
     conversations,
     messages,

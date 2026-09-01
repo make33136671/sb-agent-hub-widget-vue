@@ -1,17 +1,17 @@
 import { ref, computed } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
 import { getCore } from '../config'
-import { logger } from '@saibotianlong/openim-core'
+import { logger } from '@sb/realtime-core'
 import type {
-  GetImTokenRequest,
-  GetImTokenResponse,
+  GetTokenRequest,
+  GetTokenResponse,
   ChatUserProfile,
   AssignedAgentInfo,
   PlatformConfigInfo,
   FeatureFlags,
   PlatformType,
-} from '@saibotianlong/openim-core'
-import { registerTokenRefreshCallback } from './useOpenIM'
+} from '@sb/realtime-core'
+import { registerTokenRefreshCallback } from './useRealtime'
 
 export interface UseChatAuthReturn {
   isLoggedIn: ComputedRef<boolean>
@@ -24,7 +24,7 @@ export interface UseChatAuthReturn {
   features: Ref<FeatureFlags | null>
   error: Ref<string | null>
 
-  login: (request: GetImTokenRequest) => Promise<GetImTokenResponse>
+  login: (request: GetTokenRequest) => Promise<GetTokenResponse>
   loginSimple: (platformKey: string, options?: {
     userId?: string
     nickname?: string
@@ -32,7 +32,7 @@ export interface UseChatAuthReturn {
     deviceId?: string
     platformType?: PlatformType
     source?: string
-  }) => Promise<GetImTokenResponse>
+  }) => Promise<GetTokenResponse>
   logout: () => Promise<void>
   restoreSession: () => Promise<boolean>
   updateUserProfile: (updates: { nickname?: string; avatar?: string }) => void
@@ -47,14 +47,14 @@ const features = ref<FeatureFlags | null>(null)
 const isLoggingIn = ref(false)
 const error = ref<string | null>(null)
 
-let lastLoginRequest: GetImTokenRequest | null = null
+let lastLoginRequest: GetTokenRequest | null = null
 
 const isLoggedIn = computed(() => !!userID.value && !!token.value)
 
 export function useChatAuth(): UseChatAuthReturn {
   const login = async (
-    request: GetImTokenRequest
-  ): Promise<GetImTokenResponse> => {
+    request: GetTokenRequest
+  ): Promise<GetTokenResponse> => {
     if (isLoggingIn.value) {
       throw new Error('正在登录中，请稍候')
     }
@@ -64,7 +64,7 @@ export function useChatAuth(): UseChatAuthReturn {
     error.value = null
 
     try {
-      const authData = await core.auth.getImToken(request)
+      const authData = await core.auth.getToken(request)
 
       userID.value = authData.userID
       token.value = authData.token
@@ -73,9 +73,14 @@ export function useChatAuth(): UseChatAuthReturn {
       platform.value = authData.platform
       features.value = authData.features
 
-      // 用服务端下发的 IM 地址更新 SDK 配置
-      if (authData.imConfig) {
-        core.updateImAddrs(authData.imConfig.apiUrl, authData.imConfig.wsUrl)
+      // 用服务端下发的 Realtime 地址更新配置
+      if (authData.realtimeConfig) {
+        core.updateRealtimeAddrs(authData.realtimeConfig.wsUrl)
+      }
+
+      // 设置当前会话 ID
+      if (authData.agent?.conversationId) {
+        core.setConversationId(authData.agent.conversationId)
       }
 
       core.session.saveAuthData(authData)
@@ -85,9 +90,9 @@ export function useChatAuth(): UseChatAuthReturn {
 
       registerTokenRefreshCallback(async () => {
         if (!lastLoginRequest) throw new Error('无法刷新：缺少登录参数')
-        const newAuth = await core.auth.getImToken(lastLoginRequest)
-        if (newAuth.imConfig) {
-          core.updateImAddrs(newAuth.imConfig.apiUrl, newAuth.imConfig.wsUrl)
+        const newAuth = await core.auth.getToken(lastLoginRequest)
+        if (newAuth.realtimeConfig) {
+          core.updateRealtimeAddrs(newAuth.realtimeConfig.wsUrl)
         }
         userID.value = newAuth.userID
         token.value = newAuth.token
@@ -123,7 +128,7 @@ export function useChatAuth(): UseChatAuthReturn {
       platformType?: PlatformType
       source?: string
     }
-  ): Promise<GetImTokenResponse> => {
+  ): Promise<GetTokenResponse> => {
     return login({
       platformKey,
       userId: options?.userId,
@@ -140,7 +145,7 @@ export function useChatAuth(): UseChatAuthReturn {
     try {
       await core.logout()
     } catch (e) {
-      logger.warn('ChatAuth', 'OpenIM 登出失败:', e)
+      logger.warn('ChatAuth', 'Realtime 登出失败:', e)
     }
 
     userID.value = null

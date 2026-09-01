@@ -16,11 +16,11 @@ export default defineConfig({
       fileName: 'sb-agent-hub-widget',
     },
     rollupOptions: {
-      external: ['vue', '@saibotianlong/openim-core'],
+      external: ['vue', '@sb/realtime-core'],
       output: {
         globals: {
           vue: 'Vue',
-          '@saibotianlong/openim-core': 'SbOpenIMCore',
+          '@sb/realtime-core': 'SbRealtimeCore',
         },
       },
     },

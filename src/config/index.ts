@@ -1,23 +1,20 @@
-import { createOpenIMCore, type OpenIMClient } from '@saibotianlong/openim-core'
+import { createRealtimeCore, type RealtimeClient } from '@sb/realtime-core'
 
 export interface WidgetConfig {
-  apiAddr?: string
   wsAddr?: string
-  platformID: number
   logLevel: number
   baseURL: string
   platformKey: string
 }
 
 const defaultConfig: WidgetConfig = {
-  platformID: 5, // Web
-  logLevel: 2, // Error (0-Panic, 1-Fatal, 2-Error, 3-Warn, 4-Info, 5-Debug, 6-Verbose)
+  logLevel: 2,
   baseURL: 'http://127.0.0.1:5153',
-  platformKey: 'pk_b15ad941fcc248cab64513cebeee6d1a',
+  platformKey: '',
 }
 
 let currentConfig: WidgetConfig = { ...defaultConfig }
-let coreInstance: OpenIMClient | null = null
+let coreInstance: RealtimeClient | null = null
 
 export function configureWidget(config: Partial<WidgetConfig>): void {
   currentConfig = { ...currentConfig, ...config }
@@ -31,13 +28,11 @@ export function getConfig(): WidgetConfig {
   return currentConfig
 }
 
-/** 获取共享的 OpenIM 核心客户端实例（延迟创建） */
-export function getCore(): OpenIMClient {
+/** 获取共享的 Realtime 核心客户端实例（延迟创建） */
+export function getCore(): RealtimeClient {
   if (!coreInstance) {
-    coreInstance = createOpenIMCore({
-      apiAddr: currentConfig.apiAddr,
+    coreInstance = createRealtimeCore({
       wsAddr: currentConfig.wsAddr,
-      platformID: currentConfig.platformID,
       logLevel: currentConfig.logLevel,
       baseURL: currentConfig.baseURL,
       platformKey: currentConfig.platformKey,

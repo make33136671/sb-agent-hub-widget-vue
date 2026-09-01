@@ -11,12 +11,12 @@ export type {
   AssignedAgentInfo,
   PlatformConfigInfo,
   FeatureFlags,
-  GetImTokenRequest,
-  GetImTokenResponse,
+  GetTokenRequest,
+  GetTokenResponse,
   PlatformType,
-} from '@saibotianlong/openim-core'
-export type { Message, Conversation } from '@saibotianlong/openim-core'
-export { MessageType } from '@saibotianlong/openim-core'
+} from '@sb/realtime-core'
+export type { Message, Conversation } from '@sb/realtime-core'
+export { MessageType } from '@sb/realtime-core'
 
 export function install(app: App, config?: Partial<WidgetConfig>) {
   app.component('CustomerServiceWidget', CustomerServiceWidget)
