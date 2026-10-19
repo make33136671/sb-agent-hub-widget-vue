@@ -1,0 +1,49 @@
+{
+  "name": "@saibotianlong/agent-widget-vue",
+  "version": "0.1.0",
+  "description": "Embeddable customer service widget (Vue 3)",
+  "type": "module",
+  "license": "MIT",
+  "author": "saibotianlong",
+  "keywords": [
+    "widget",
+    "vue",
+    "chat",
+    "customer-service",
+    "realtime"
+  ],
+  "main": "./dist/sb-agent-hub-widget.umd.cjs",
+  "module": "./dist/sb-agent-hub-widget.js",
+  "exports": {
+    ".": {
+      "import": "./dist/sb-agent-hub-widget.js",
+      "require": "./dist/sb-agent-hub-widget.umd.cjs"
+    },
+    "./style.css": "./dist/sb-agent-hub-widget.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "@saibotianlong:registry": "https://gitlab.saibo.club/api/v4/projects/32/packages/npm/"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.5.0",
+    "@saiboniuma/realtime-core": "^0.1.0",
+    "@saiboniuma/chat-ui": "^0.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "@vue/tsconfig": "^0.7.0",
+    "typescript": "~5.6.3",
+    "vue-tsc": "^2.1.0",
+    "vite": "^6.2.0"
+  },
+  "packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621"
+}
