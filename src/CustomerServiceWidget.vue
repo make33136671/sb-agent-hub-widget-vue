@@ -1,8 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import ChatBox from './ChatBox.vue'
 import { getConfig } from './config'
-import type { PlatformType, GetTokenResponse } from '@sb/realtime-core'
+import type { PlatformType, GetTokenResponse } from '@saiboniuma/realtime-core'
 
 interface Props {
   show?: boolean

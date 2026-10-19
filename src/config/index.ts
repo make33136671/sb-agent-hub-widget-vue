@@ -1,4 +1,4 @@
-import { createRealtimeCore, type RealtimeClient } from '@sb/realtime-core'
+﻿import { createRealtimeCore, type RealtimeClient } from '@saiboniuma/realtime-core'
 
 export interface WidgetConfig {
   wsAddr?: string

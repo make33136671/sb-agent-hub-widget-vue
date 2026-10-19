@@ -1,10 +1,10 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { getCore } from './config'
 import { useChatAuth } from './composables/useChatAuth'
 import { useRealtime, registerTokenRefreshCallback } from './composables/useRealtime'
-import { ChatUI, TextPlugin, ImagePlugin, EmojiPlugin, zhCN } from '@sb/chat-ui'
-import { logger } from '@sb/realtime-core'
+import { ChatUI, TextPlugin, ImagePlugin, EmojiPlugin, zhCN } from '@saiboniuma/chat-ui'
+import { logger } from '@saiboniuma/realtime-core'
 
 interface Props {
   platformKey?: string

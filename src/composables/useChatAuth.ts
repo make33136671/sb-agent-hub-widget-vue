@@ -1,7 +1,7 @@
-import { ref, computed } from 'vue'
+﻿import { ref, computed } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
 import { getCore } from '../config'
-import { logger } from '@sb/realtime-core'
+import { logger } from '@saiboniuma/realtime-core'
 import type {
   GetTokenRequest,
   GetTokenResponse,
@@ -10,7 +10,7 @@ import type {
   PlatformConfigInfo,
   FeatureFlags,
   PlatformType,
-} from '@sb/realtime-core'
+} from '@saiboniuma/realtime-core'
 import { registerTokenRefreshCallback } from './useRealtime'
 
 export interface UseChatAuthReturn {

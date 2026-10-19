@@ -35,8 +35,8 @@
   },
   "dependencies": {
     "vue": "^3.5.0",
-    "@sb/realtime-core": "file:../../../sb/sb-framework-chat-js/packages/realtime-core",
-    "@sb/chat-ui": "file:../../../sb/sb-framework-chat-js/packages/chat-ui"
+    "@saiboniuma/realtime-core": "^0.1.0",
+    "@saiboniuma/chat-ui": "^0.1.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.0",

@@ -1,8 +1,8 @@
-import { ref } from 'vue'
+﻿import { ref } from 'vue'
 import type { Ref } from 'vue'
 import { getCore } from '../config'
-import { isSystemMessage, logger, MessageStatus } from '@sb/realtime-core'
-import type { Message, Conversation, UserInfo } from '@sb/realtime-core'
+import { isSystemMessage, logger, MessageStatus } from '@saiboniuma/realtime-core'
+import type { Message, Conversation, UserInfo } from '@saiboniuma/realtime-core'
 
 export interface UseRealtimeReturn {
   isConnected: Ref<boolean>

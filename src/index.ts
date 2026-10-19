@@ -1,4 +1,4 @@
-import type { App } from 'vue'
+﻿import type { App } from 'vue'
 import type { WidgetConfig } from './config'
 import { configureWidget } from './config'
 import CustomerServiceWidget from './CustomerServiceWidget.vue'
@@ -14,9 +14,9 @@ export type {
   GetTokenRequest,
   GetTokenResponse,
   PlatformType,
-} from '@sb/realtime-core'
-export type { Message, Conversation } from '@sb/realtime-core'
-export { MessageType } from '@sb/realtime-core'
+} from '@saiboniuma/realtime-core'
+export type { Message, Conversation } from '@saiboniuma/realtime-core'
+export { MessageType } from '@saiboniuma/realtime-core'
 
 export function install(app: App, config?: Partial<WidgetConfig>) {
   app.component('CustomerServiceWidget', CustomerServiceWidget)
